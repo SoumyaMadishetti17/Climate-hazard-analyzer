@@ -1,55 +1,140 @@
-<<<<<<< HEAD
-# Climate Hazard Trend Analyzer (Heatwaves)
+# Climate Hazard Trend Analyzer
 
-React + FastAPI + MongoDB app that detects heatwaves in historical weather data for any point on Earth and shows frequency / duration / intensity trends with honest statistics.
+A full-stack climate analysis application that detects historical heatwaves and analyzes their frequency, duration, intensity, and long-term trends using historical weather data.
 
-**Live demo:** _<add URL>_ · **Demo video:** _<optional>_
+**Live Demo:** https://climate-hazard-analyzer-mu.vercel.app/  
+**Backend:** https://climate-hazard-analyzer-o8w5.onrender.com
 
-## Setup
-```bash
-# backend (file-based store by default; set MONGO_URI to use MongoDB/Atlas)
-cd backend && pip install -r requirements.txt
-uvicorn app.main:app --reload            # :8000
-pytest                                    # synthetic-data tests, no network needed
+## Features
 
-# frontend
-cd frontend && npm install && npm run dev # :5173, /api proxied to :8000
-```
-Env: `MONGO_URI`, `MONGO_DB`, `ALLOWED_ORIGINS` (comma list), `RATE_LIMIT` (req/min/IP, 60), `INGEST_LIMIT` (new-region fetches/min/IP, 6), `DATA_DIR`. Frontend: `VITE_API_URL`.
+- Search for geographic locations.
+- Retrieve historical daily maximum temperatures.
+- Detect heatwave events using a calendar-day percentile threshold.
+- Analyze annual event counts, heatwave days, event duration, and intensity.
+- Visualize historical trends and rolling averages.
+- Evaluate trends using Mann–Kendall, Sen's slope, and ordinary least squares (OLS), where supported by the implementation.
+- Cache analysis results to reduce repeated upstream requests.
+- Validate input data and apply API rate limits.
 
-**Deploy:** backend → Render/Cloud Run via `backend/Dockerfile` (+ free MongoDB Atlas M0, set `MONGO_URI`, `ALLOWED_ORIGINS=<frontend url>`); frontend → Vercel/Netlify (`npm run build`, env `VITE_API_URL=<backend url>`).
+## Technology Stack
+
+- **Frontend:** React, Vite, Chart.js, Leaflet
+- **Backend:** Python, FastAPI, Pydantic, Uvicorn
+- **Database:** File-based storage by default; MongoDB support when configured
+- **Weather data:** Open-Meteo Historical Weather API
+- **Geocoding:** Open-Meteo Geocoding API
+- **Deployment:** Vercel and Render
 
 ## Architecture
+
+```text
+React frontend
+     |
+     v
+FastAPI backend
+     |
+     +----> Geocoding API
+     |
+     +----> Historical Weather API
+     |
+     +----> Cached raw data and analysis results
+             (file-based storage or MongoDB)
 ```
-React (Chart.js, Leaflet) → FastAPI ──► MongoDB  raw (daily Tmax) | analysis (yearly stats + events)
-                                  └──► Open-Meteo Archive/Geocoding (only on cache miss)
+
+## Getting Started
+
+### Prerequisites
+
+- Python compatible with the backend dependencies
+- Node.js and npm
+- Git
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/SoumyaMadishetti17/Climate-hazard-analyzer.git
+cd Climate-hazard-analyzer
 ```
-`GET /api/analysis?lat&lon&start&end&hazard=heatwave` → checks the `analysis` collection; on a miss it ingests 1990–last full year in one upstream call, caches raw data, runs detection, stores results, then **reads from the DB** to build the JSON (series, 5-yr rolling mean, trend line, Mann-Kendall/Sen/OLS, top events, insight text). `GET /api/geocode?q=` for city/state search.
 
-## Data source & handling
-Open-Meteo Historical Weather API (ERA5-based reanalysis, ~10 km, daily max 2 m temperature, °C requested explicitly).
-- Gaps → NaN (never interpolated); a gap breaks a heatwave run. Years with <85 % coverage are excluded from trends and flagged.
-- Outliers: values outside −70…60 °C or >20 °C from a 15-day rolling median → NaN, count reported.
-- Malformed/failed upstream responses are validated; 3 retries with backoff; 502 returned to client.
+### 2. Run the backend
 
-## Hazard logic
-Heatwave = **≥3 consecutive days with Tmax > the calendar-day 95th percentile** (±7-day window around each day-of-year, **1991–2020 baseline**, Feb 29 folded into Feb 28). A fixed baseline is used regardless of the selected range so results are comparable and trends aren't an artifact of the chosen window. Per year: event count (by start date), heatwave days, longest event, mean intensity (°C above threshold).
-Trends over valid years in the selected range: **Mann-Kendall** p-value + **Sen's slope** (robust to outliers) and OLS slope/R². "Significant" = p<0.05. The headline % compares the first and last 10 years (or halves for short ranges) and always states significance; caveats are shown in the UI.
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
-## Security / performance
-Pydantic-validated bounds on lat/lon/years, regex-limited geocode query, fixed upstream hosts (no SSRF), 0.25° grid snapping (bounded cache keys), per-region lock (no duplicate ingestion), per-IP sliding-window rate limits (general + stricter for ingestion), CORS allow-list, GET-only API, DB cache with freshness check (new year / algorithm version).
+The API will be available at `http://localhost:8000`.
 
-## Assumptions & limitations
-- Custom "box" regions are not implemented: a point is analysed (nearest 0.25° cell). Box = area-average would be the next step.
-- One grid cell ≠ a station; Tmax only (no humidity / heat index / Tmin).
-- Rate limiter is in-memory (single instance). Open-Meteo free tier is for non-commercial use.
-- Only heatwaves implemented (selector shows drought/rainfall as coming soon).
+Interactive API documentation: `http://localhost:8000/docs`.
 
-## With more time
-Region-box averaging, multi-source cross-check (NOAA/ERA5-Land), heat-index definition (EHF), Redis rate-limit/cache, serverless-friendly background ingestion with progress, server-side PDF export, frontend tests, CI.
+### 3. Run the frontend
 
-## AI tools used
-Claude (Anthropic) generated the initial scaffold of backend, tests, frontend and README from the case brief; I reviewed, ran and adapted the code. _<edit to reflect your own usage>_
-=======
-# Climate-hazard-analyzer
->>>>>>> 08c6413c19b4557cf1d39e8da243f4c9442cbbc4
+Open a separate terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file in the `frontend` directory:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open the local URL shown in the terminal.
+
+## API Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `/api/health` | Backend health check |
+| `/api/geocode?q=` | Search for geographic locations |
+| `/api/analysis` | Retrieve climate analysis |
+
+The analysis endpoint accepts location coordinates, a date range, and a hazard type according to the backend's supported request parameters.
+
+## Data Sources
+
+- **Open-Meteo Historical Weather API:** Historical weather data, including daily maximum temperature.
+- **Open-Meteo Geocoding API:** Geographic location search.
+
+The availability and coverage of data depend on the selected location and requested period.
+
+## Heatwave Detection
+
+The intended detection approach identifies heatwave events as at least three consecutive days with daily maximum temperatures above the calendar-day 95th percentile, using a seasonal reference window and a fixed baseline.
+
+The analysis can summarize event frequency, heatwave days, event duration, intensity, and long-term trends. Consult the implementation and API responses for the exact calculation details.
+
+## Limitations
+
+- Heatwave analysis is the implemented hazard; drought and heavy-rainfall analysis are not yet available.
+- The current analysis uses a geographic grid point rather than averaging a user-drawn region.
+- Daily maximum temperature alone does not capture humidity, nighttime temperatures, or a complete heat-index assessment.
+- Browser-based printing may be used for PDF output; dedicated PDF generation and CSV export should not be assumed.
+- Statistical methods and data-quality checks should be validated against the current implementation before relying on results.
+- External API availability and deployment resource limits may affect response times.
+
+## Future Improvements
+
+- Add drought and heavy-rainfall analysis.
+- Support map-based region selection and area averaging.
+- Add CSV export and dedicated PDF generation.
+- Improve caching and rate limiting for multi-instance deployments.
+- Expand automated testing and continuous integration.
+
+## AI-Assisted Development
+
+Claude AI was used to assist with the initial project scaffold and code generation. ChatGPT was used for technical guidance, troubleshooting, and deployment assistance. AI-generated code should be reviewed and tested before being relied upon.
+
+## License
+
+No license has been specified. Add a license file if you intend to distribute the project for reuse.
