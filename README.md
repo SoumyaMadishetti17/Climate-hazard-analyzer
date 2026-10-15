@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Climate Hazard Trend Analyzer (Heatwaves)
 
 React + FastAPI + MongoDB app that detects heatwaves in historical weather data for any point on Earth and shows frequency / duration / intensity trends with honest statistics.
@@ -49,3 +50,6 @@ Region-box averaging, multi-source cross-check (NOAA/ERA5-Land), heat-index defi
 
 ## AI tools used
 Claude (Anthropic) generated the initial scaffold of backend, tests, frontend and README from the case brief; I reviewed, ran and adapted the code. _<edit to reflect your own usage>_
+=======
+# Climate-hazard-analyzer
+>>>>>>> 08c6413c19b4557cf1d39e8da243f4c9442cbbc4
